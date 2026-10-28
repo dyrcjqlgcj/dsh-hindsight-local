@@ -2,10 +2,10 @@
 
 ## 已经做完的
 
-- 仓库：https://github.com/dyrcjqlgcj/dsh-hindsight-local （20 个文件，topic `dsh-plugin` / `hindsight` / `memory`，当前版本 0.2.0）
+- 仓库：https://github.com/dyrcjqlgcj/dsh-hindsight-local （20 个文件，topic `dsh-plugin` / `hindsight` / `memory`，当前版本 0.3.0（21 个文件，含 scripts/relocate.mjs））
 - Fork：`dyrcjqlgcj/awesome-dsh-plugin`
 - 分支 `add-dsh-hindsight-local` 上的条目
-  `data/plugins/dyrcjqlgcj__dsh-hindsight-local.yml` 已按 0.2.0 的能力更新
+  `data/plugins/dyrcjqlgcj__dsh-hindsight-local.yml` 已按 0.3.0 的能力更新（含数据目录可配置、搬盘脚本、模型离线加载）
 
 ## 还差一步：开 PR
 
