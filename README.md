@@ -56,6 +56,8 @@ Every field has a default; override only what you need:
     retainOnIdle: true
     handoffSnapshot: true      # write a snapshot when a session ends
     snapshotMaxChars: 1500
+    dataDir: ''               # where the data lives; see "Keeping data on another drive"
+    offlineModels: true       # don't re-validate cached models over the network
 ```
 
 Resolution order: **plugin config → process env → profile env file → built-in defaults**.
@@ -77,6 +79,35 @@ This plugin writes a snapshot instead:
 - **Disable** — `handoffSnapshot: false`.
 
 A snapshot is background, not an instruction: the injection says to treat it as context and re-check before relying on it, so an old conclusion cannot override what the user asks now.
+
+## Keeping data on another drive
+
+By default the server keeps three things under your user profile:
+
+| What | Default | How to move it |
+| --- | --- | --- |
+| Embedded PostgreSQL (install + database) | `~/.pg0` | directory junction only (`pg0.exe` hard-codes its home and the server does not forward `data-dir`) |
+| Embedding / reranker model cache | `~/.cache/huggingface` | `HF_HOME`, or a junction |
+| uv cache (the server executable lives here) | `%LOCALAPPDATA%/uv/cache` | `UV_CACHE_DIR`, or a junction |
+
+One command does the whole move (stops the server and the database, copies, creates junctions at the old paths, starts the server again and checks `/health`):
+
+```bash
+node scripts/relocate.mjs --to D:/hindsight-data
+node scripts/relocate.mjs --to D:/hindsight-data --dry-run    # show the plan only
+```
+
+Then point the plugin at the same directory:
+
+```yaml
+- id: hindsight-local
+  config:
+    dataDir: D:/hindsight-data
+```
+
+`dataDir` makes the plugin export `UV_CACHE_DIR`, `HF_HOME` and `SENTENCE_TRANSFORMERS_HOME` before it spawns the server, so a fresh install can live on another drive without junctions. An existing `~/.pg0` still has to be moved by `relocate.mjs` (it creates the junction for you).
+
+Each default location can also be overridden with `HINDSIGHT_PG0_DIR`, `HINDSIGHT_HF_DIR`, `HINDSIGHT_UV_DIR`.
 
 ## Why not `hindsight-embed daemon start`
 

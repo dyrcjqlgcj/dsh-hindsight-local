@@ -2,8 +2,12 @@
 // 校验四件事：模块能加载、Config 校验不抛错、九个工具能注册、能连上本机服务（连不上就跳过网络部分）。
 import assert from 'node:assert/strict'
 import * as plugin from '../index.js'
-import { resolveSettings, DEFAULTS } from '../lib/config.js'
-import { findServerExe, probeHealth } from '../lib/daemon.js'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { defaultDataDirs, resolveSettings, DEFAULTS } from '../lib/config.js'
+import { buildServerEnv, findServerExe, probeHealth } from '../lib/daemon.js'
 import * as api from '../lib/api.js'
 import { bankIdFor } from '../lib/bank.js'
 
@@ -129,6 +133,54 @@ if (!health.ok) {
   await step('search', async () => tolerate(async () => `${(await api.searchPages(settings, bankId, '插件', 3)).length} 命`))
   await step('recall', async () => tolerate(async () => `${(await api.recall(settings, bankId, '本地记忆', 3))?.results?.length ?? 0} 条`))
 }
+
+// 数据目录：配置后 uv 缓存/模型缓存都跟着走，且模型默认离线校验
+await step('dataDir', async () => {
+  const plain = resolveSettings({})
+  assert.equal(plain.dataRoot, '')
+  assert.equal(plain.uvCacheDir, '')
+
+  const moved = resolveSettings({ dataDir: 'D:/hindsight-data' })
+  assert.equal(moved.dataRoot.startsWith('D:'), true, moved.dataRoot)
+  assert.equal(moved.uvCacheDir.endsWith('uv-cache'), true, moved.uvCacheDir)
+  assert.equal(moved.hfHome.endsWith('huggingface'), true, moved.hfHome)
+
+  const env = buildServerEnv(moved)
+  assert.equal(env.UV_CACHE_DIR, moved.uvCacheDir)
+  assert.equal(env.HF_HOME, moved.hfHome)
+  assert.equal(env.HF_HUB_OFFLINE, '1')
+  assert.equal(env.TRANSFORMERS_OFFLINE, '1')
+
+  const online = buildServerEnv({ ...moved, offlineModels: false })
+  assert.equal(online.HF_HUB_OFFLINE, undefined)
+
+  // 环境变量覆盖默认位置（位置非标准的人/自测用）
+  const savedEnv = { ...process.env }
+  process.env.HINDSIGHT_PG0_DIR = 'D:/x/pg0'
+  try {
+    assert.equal(defaultDataDirs().pg0.startsWith('D:'), true)
+  } finally {
+    process.env = savedEnv
+  }
+  return 'dataDir → uv/HF 缓存与离线开关 ok'
+})
+
+// 配置了 dataDir 时，server 可执行文件也能从新缓存目录里找到
+await step('findServerExe@dataDir', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'hl-exe-'))
+  try {
+    const exeDir = join(root, 'uv-cache', 'archive-v0', 'fake', 'Scripts')
+    mkdirSync(exeDir, { recursive: true })
+    mkdirSync(join(root, 'uv-cache', 'archive-v0', 'fake', 'Lib', 'site-packages', 'hindsight_api'), { recursive: true })
+    writeFileSync(join(exeDir, 'hindsight-api.exe'), '')
+    writeFileSync(join(root, 'uv-cache', 'archive-v0', 'fake', 'Lib', 'site-packages', 'hindsight_api', 'main.py'), '')
+    const found = findServerExe(resolveSettings({ dataDir: root }))
+    assert.ok(found && found.startsWith(root), `expected exe under ${root}, got ${found}`)
+    return '从 dataDir 的 uv 缓存里找到 server'
+  } finally {
+    rmSync(root, { recursive: true, force: true })
+  }
+})
 
 // 收尾快照：纯函数，不碰网络
 await step('snapshot', async () => {

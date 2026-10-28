@@ -34,6 +34,8 @@ const FIELDS = {
   retainOnIdle: { type: 'boolean', meta: { default: true, description: '一轮结束时把对话回写进记忆（会消耗一次 LLM 抽取）' } },
   handoffSnapshot: { type: 'boolean', meta: { default: true, description: '会话结束时写一份收尾快照（诉求 + 最后结论），下次会话注入「上次进度」' } },
   snapshotMaxChars: { type: 'integer', meta: { default: 1500, description: '收尾快照的最大字符数' } },
+  dataDir: { type: 'string', meta: { default: '', description: '数据目录（如 D:/hindsight-data）；留空用系统默认位置。改这里前先用 scripts/relocate.mjs 把已有数据搬过去' } },
+  offlineModels: { type: 'boolean', meta: { default: true, description: '模型已缓存时不再联网校验（网络差时启动快很多）' } },
   readyTimeoutMs: { type: 'integer', meta: { default: 240000, description: '等本机服务就绪的最长时间（毫秒）' } },
   requestTimeoutMs: { type: 'integer', meta: { default: 20000, description: '普通 HTTP 请求超时（毫秒）' } }
 }

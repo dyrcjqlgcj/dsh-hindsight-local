@@ -69,6 +69,8 @@ HINDSIGHT_API_PORT=9077
     retainOnIdle: true
     handoffSnapshot: true     # 会话结束写收尾快照
     snapshotMaxChars: 1500    # 快照正文上限
+    dataDir: ''               # 数据目录，留空用系统默认；见「把数据放到别的盘」
+    offlineModels: true       # 模型已缓存就不再联网校验
     readyTimeoutMs: 240000
     requestTimeoutMs: 20000
 ```
@@ -101,6 +103,35 @@ DSH 左上角「上下文 → 交接文档」那一页，内容其实是整场�
 - **关掉**：`handoffSnapshot: false`。
 
 快照是「背景」而不是「指令」：注入时明确写成「先当背景，需要时再核对」，避免上一场会话的结论覆盖当前用户的明确要求。
+
+## 把数据放到别的盘
+
+服务默认把三样东西放在 C: 的用户目录下：
+
+| 内容 | 默认位置 | 搬法 |
+| --- | --- | --- |
+| 嵌入式 PostgreSQL（安装 + 数据库） | `~/.pg0` | 只能目录联接（`pg0.exe` 位置写死，服务也不转发 `data-dir`） |
+| 嵌入/重排模型缓存 | `~/.cache/huggingface` | 环境变量 `HF_HOME`，或联接 |
+| uv 缓存（server 可执行文件在这里） | `%LOCALAPPDATA%/uv/cache` | 环境变量 `UV_CACHE_DIR`，或联接 |
+
+一条命令搬完（会先停服务与数据库、搬移、在原路径建联接、再起服务并确认 `/health`）：
+
+```bash
+node scripts/relocate.mjs --to D:/hindsight-data
+node scripts/relocate.mjs --to D:/hindsight-data --dry-run    # 只看会做什么
+```
+
+搬完把 `dataDir` 填成同一个目录：
+
+```yaml
+- id: hindsight-local
+  config:
+    dataDir: D:/hindsight-data
+```
+
+`dataDir` 会让插件在拉起服务时设 `UV_CACHE_DIR`、`HF_HOME`、`SENTENCE_TRANSFORMERS_HOME`，因此**新装**也可以直接用配置指定位置，不必先联接到默认路径；只有已经存在的 `~/.pg0` 必须靠 `relocate.mjs` 搬（它替你做联接）。
+
+三个默认位置都能用环境变量改：`HINDSIGHT_PG0_DIR`、`HINDSIGHT_HF_DIR`、`HINDSIGHT_UV_DIR`。
 
 ## 为什么不用 `hindsight-embed daemon start`
 
