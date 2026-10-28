@@ -1,0 +1,19 @@
+# DeepSeek Harness profile layer for dsh-hindsight-local.
+#
+# 行里没有任何 config：默认值写在 index.js 的 Config schema 里，
+# 想改就在 profile 自己的 cordis.patch.yml 里按 id 覆盖这一行（patch 是整块替换，
+# 覆盖时要把需要的键都写全）：
+#
+#   - id: hindsight-local
+#     config:
+#       apiKey: sk-...        # 不写也行：读 HINDSIGHT_API_LLM_API_KEY / DEEPSEEK_API_KEY
+#       llmModel: deepseek-chat
+#       autoStart: true
+#
+# 关掉但保留安装：
+#
+#   - id: hindsight-local
+#     disabled: true
+- insert:
+    - id: hindsight-local
+      name: dsh-hindsight-local
