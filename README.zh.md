@@ -14,11 +14,11 @@
 ## 安装
 
 ```bash
-# 在 DSH 里（profile 用你自己的，常见是 desktop / web / tui）
-dsh plugin --profile desktop add /path/to/dsh-hindsight-local
+# 从 GitHub 直接装（推荐）
+dsh plugin --profile desktop add github:dyrcjqlgcj/dsh-hindsight-local
 
-# 或者从源码目录直接装
-dsh plugin --profile desktop add ./dsh-hindsight-local
+# 本地源码目录
+dsh plugin --profile desktop add /path/to/dsh-hindsight-local
 ```
 
 装完重启 DSH（插件在进程启动时读取配置）。
