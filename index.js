@@ -32,6 +32,8 @@ const FIELDS = {
   recallLimit: { type: 'integer', meta: { default: 5, description: '注入/检索时最多带几条事实' } },
   injectMaxChars: { type: 'integer', meta: { default: 4000, description: '注入内容的最大字符数' } },
   retainOnIdle: { type: 'boolean', meta: { default: true, description: '一轮结束时把对话回写进记忆（会消耗一次 LLM 抽取）' } },
+  handoffSnapshot: { type: 'boolean', meta: { default: true, description: '会话结束时写一份收尾快照（诉求 + 最后结论），下次会话注入「上次进度」' } },
+  snapshotMaxChars: { type: 'integer', meta: { default: 1500, description: '收尾快照的最大字符数' } },
   readyTimeoutMs: { type: 'integer', meta: { default: 240000, description: '等本机服务就绪的最长时间（毫秒）' } },
   requestTimeoutMs: { type: 'integer', meta: { default: 20000, description: '普通 HTTP 请求超时（毫秒）' } }
 }

@@ -42,6 +42,8 @@ step('config validation', () => {
   assert.equal(value.recallLimit, DEFAULTS.recallLimit)
   assert.equal(value.readyTimeoutMs, DEFAULTS.readyTimeoutMs)
   assert.equal(value.apiUrl, DEFAULTS.apiUrl)
+  assert.equal(value.handoffSnapshot, DEFAULTS.handoffSnapshot)
+  assert.equal(value.snapshotMaxChars, DEFAULTS.snapshotMaxChars)
   assert.equal(value.unknownKey, undefined)
   return 'dirty values fall back to defaults'
 })
@@ -127,6 +129,24 @@ if (!health.ok) {
   await step('search', async () => tolerate(async () => `${(await api.searchPages(settings, bankId, '插件', 3)).length} 命`))
   await step('recall', async () => tolerate(async () => `${(await api.recall(settings, bankId, '本地记忆', 3))?.results?.length ?? 0} 条`))
 }
+
+// 收尾快照：纯函数，不碰网络
+await step('snapshot', async () => {
+  const { snapshotText, documentIdFor } = await import('../lib/hooks.js')
+  assert.equal(documentIdFor('s1'), 'dsh-session:s1')
+  const text = snapshotText({
+    sessionId: 's1',
+    cwd: 'D:\\demo',
+    requests: ['把交接文档换成知识库'],
+    lastAssistant: 'hooks 已改成写收尾快照',
+    at: new Date('2026-10-28T12:00:00Z')
+  })
+  assert.match(text, /会话收尾快照/)
+  assert.match(text, /把交接文档换成知识库/)
+  assert.match(text, /hooks 已改成写收尾快照/)
+  assert.ok(snapshotText({ sessionId: 's1', cwd: 'x', requests: [], lastAssistant: '', maxChars: 40 }).length <= 40 + 20)
+  return '快照文本与 document id ok'
+})
 
 for (const [status, name, detail] of results) console.log(`${status.padEnd(4)} ${name.padEnd(18)} ${detail}`)
 const failed = results.filter(([status]) => status === 'FAIL')

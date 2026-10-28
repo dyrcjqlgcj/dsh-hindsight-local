@@ -1,7 +1,7 @@
 {
   "name": "dsh-hindsight-local",
-  "version": "0.1.0",
-  "description": "Local Hindsight memory for DeepSeek Harness: run the memory server on your own machine, with your own LLM key.",
+  "version": "0.2.0",
+  "description": "Local Hindsight memory for DeepSeek Harness: memory server on your own machine, your own LLM key, plus a session-end handoff snapshot that the next session picks up.",
   "type": "module",
   "main": "index.js",
   "exports": {
@@ -13,6 +13,8 @@
     "index.js",
     "lib/",
     "scripts/smoke.mjs",
+    "scripts/hooks-test.mjs",
+    "scripts/handoff-check.mjs",
     "cordis.patch.yml",
     "README.md",
     "README.zh.md",
@@ -38,6 +40,7 @@
     }
   },
   "scripts": {
+    "test": "node scripts/hooks-test.mjs && node scripts/smoke.mjs",
     "smoke": "node scripts/smoke.mjs"
   }
 }

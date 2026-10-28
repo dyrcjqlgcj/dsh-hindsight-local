@@ -10,6 +10,7 @@
 - **注入上下文**：会话第一步注入「本仓库有哪些知识页」+ 与你问题相关的几条历史事实（一次会话只注入一次，有字符上限）
 - **回写记忆**：一轮对话结束后，把最近几条 user/assistant 消息写进 bank，由服务端 LLM 抽成结构化事实
 - **给模型工具**：10 个 `hindsight_local_*` 工具，可查知识页、读全文、检索事实、写入、推理、看状态/日志、启停服务
+- **顶替交接文档**：会话结束时写一条**收尾快照**（本次的诉求 + 最后的结论 + 停在哪儿），下一场会话开头注入成「上次进度」——不用再把整份聊天记录导出成 Markdown 粘来粘去（详见 [交接：会话收尾快照](#交接会话收尾快照)）
 
 ## 安装
 
@@ -66,6 +67,8 @@ HINDSIGHT_API_PORT=9077
     recallLimit: 5
     injectMaxChars: 4000
     retainOnIdle: true
+    handoffSnapshot: true     # 会话结束写收尾快照
+    snapshotMaxChars: 1500    # 快照正文上限
     readyTimeoutMs: 240000
     requestTimeoutMs: 20000
 ```
@@ -84,6 +87,20 @@ HINDSIGHT_API_PORT=9077
 | `hindsight_local_remember` | 写入一条事实 |
 | `hindsight_local_reflect` | 对记忆做多步推理 |
 | `hindsight_local_pages` | 列出全部知识页 |
+
+## 交接：会话收尾快照
+
+DSH 左上角「上下文 → 交接文档」那一页，内容其实是整场会话的逐条导出（`bili export`，含思维链、工具参数、工具原始输出）。换会话时把它整个粘过去，又长又贵：本仓库实测一次导出里 assistant 块占 63.7%，其中思维链 47.6%，而真正需要的只是「上次做到哪、下一步是什么」。
+
+这个插件改成写快照：
+
+- **会话结束**（`disposed`）写一条「收尾快照」，内容是项目路径、会话 id、本次所有用户诉求（每条截 400 字符）、最后一条 assistant 结论（截 800），总长不超过 `snapshotMaxChars`（默认 1500）。
+- **归组**：一场会话的所有写入都用同一个 `document_id = dsh-session:<会话id>`，服务端按文档归组；快照本身的 tags 是 `dsh-session` + `dsh-session-handoff`，轮次片段是 `dsh-session` + `dsh-session-turn`。
+- **下一场会话**：注入内容里多出「上次停下的地方」小节——最多 3 条、每条截 220 字符，来自 `recall`，不是全文。
+- **核对**：随时 `hindsight_local_recall("上次会话做到哪一步，下一步要做什么")`，或 `hindsight_local_recall("<会话关键词> 收尾快照")`。
+- **关掉**：`handoffSnapshot: false`。
+
+快照是「背景」而不是「指令」：注入时明确写成「先当背景，需要时再核对」，避免上一场会话的结论覆盖当前用户的明确要求。
 
 ## 为什么不用 `hindsight-embed daemon start`
 
